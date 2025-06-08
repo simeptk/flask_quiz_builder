@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question {{ question_number }} - {{ quiz_title }} - FlaskQuiz Builder</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+        }
+         .question-info {
+             margin-bottom: 20px;
+             font-size: 1.1em;
+             color: #555;
+             display: flex;
+             justify-content: space-between;
+             align-items: flex-start; /* Align items to the top */
+             flex-wrap: wrap;
+         }
+         .question-info > div {
+             margin-bottom: 5px;
+         }
+        .question-text {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-left: 4px solid #0056b3;
+            border-radius: 4px;
+            background-color: #e9f5ff;
+            white-space: pre-wrap;
+        }
+        .options label {
+            display: block;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .options label:hover {
+            background-color: #f0f0f0;
+        }
+        .options input[type="radio"] {
+            margin-right: 10px;
+        }
+        .options label strong {
+            margin-right: 5px;
+        }
+        button {
+            display: inline-block;
+            background-color: #0056b3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #004080;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .end-quiz-link {
+            display: inline-block;
+            color: #dc3545;
+            text-decoration: none;
+            margin-top: 20px;
+            font-size: 0.9em;
+            padding: 10px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .end-quiz-link:hover {
+            color: #c82333;
+            text-decoration: underline;
+             background-color: #f8d7da;
+             border-color: #f5c6cb;
+        }
+
+        /* Timer Styles */
+        .timers-container { /* Container for both timers */
+             display: flex;
+             flex-direction: column; /* Stack timers vertically */
+             align-items: flex-end; /* Align timers to the right */
+             gap: 5px; /* Space between timers */
+        }
+        .timer { /* Per-question timer */
+             font-size: 1.2em;
+             font-weight: bold;
+             color: #0056b3;
+             padding: 5px 10px;
+             border: 1px solid #0056b3;
+             border-radius: 4px;
+             background-color: #e9f5ff;
+             width: 150px; /* Fixed width for consistent look */
+             text-align: center;
+        }
+        .overall-timer { /* Overall timer */
+             font-size: 1em;
+             font-weight: bold;
+             color: #555; /* More subtle color */
+             padding: 5px 10px;
+             border: 1px dashed #555; /* Dashed border */
+             border-radius: 4px;
+             background-color: #eee;
+             width: 150px; /* Match width */
+             text-align: center;
+        }
+
+        .timer.warning {
+             color: #ffc107;
+             border-color: #ffc107;
+             background-color: #fff3cd;
+        }
+         .timer.danger {
+             color: #dc3545;
+             border-color: #dc3545;
+             background-color: #f8d7da;
+         }
+          .overall-timer.warning {
+             color: #ffc107;
+             border-color: #ffc107;
+             background-color: #fff3cd;
+        }
+         .overall-timer.danger {
+             color: #dc3545;
+             border-color: #dc3545;
+             background-color: #f8d7da;
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ quiz_title }} - Question {{ question_number }}</h1>
+
+        <div class="question-info">
+            <div>
+                Question {{ question_number }} of {{ total_questions }}
+                {% if question.topic %}
+                    | Topic: {{ question.topic }}
+                {% endif %}
+            </div>
+             {% if quiz_mode == 'timed' %}
+                 <div class="timers-container">
+                     {# Display per-question timer #}
+                     <div id="per-question-timer" class="timer">Time Left: --:--</div>
+                     {# Display overall timer #}
+                     <div id="overall-timer" class="overall-timer">Total Time Left: --:--</div>
+                 </div>
+             {% endif %}
+        </div>
+
+        <div class="question-text">
+            {{ question.text | safe }}
+        </div>
+
+        <form id="quiz-form" action="{{ url_for('handle_answer') }}" method="post">
+            <input type="hidden" name="question_id" value="{{ question.id }}">
+             <input type="hidden" name="timer_expired" id="timer_expired" value="false">
+
+
+            <div class="options">
+                {% for key, value in question.options.items() %}
+                    <div>
+                        <label>
+                            <input type="radio" name="user_answer" value="{{ key }}" required>
+                            <strong>{{ key }})</strong> {{ value | safe }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" id="submit-button">Submit Answer</button>
+             <a href="{{ url_for('end_quiz') }}" class="end-quiz-link" onclick="return confirm('Are you sure you want to end this quiz? Your progress for this session will be lost.');">End Quiz</a>
+        </form>
+
+    </div>
+
+    {% if quiz_mode == 'timed' and per_question_time_remaining_seconds is not none and overall_time_remaining_seconds is not none %}
+    <script>
+        // Initial time remaining for *this question*
+        var perQuestionTimeRemaining = {{ per_question_time_remaining_seconds }};
+        // Initial time remaining for the *overall quiz*
+        var overallTimeRemaining = {{ overall_time_remaining_seconds }};
+
+        var perQuestionTimerElement = document.getElementById('per-question-timer');
+        var overallTimerElement = document.getElementById('overall-timer'); // Get overall timer element
+
+        var quizForm = document.getElementById('quiz-form');
+        var submitButton = document.getElementById('submit-button');
+        var timerExpiredInput = document.getElementById('timer_expired');
+
+        var timerInterval = null;
+
+        function updateTimerDisplays() {
+            // Update Per-Question Timer
+            var perQMins = Math.floor(perQuestionTimeRemaining / 60);
+            var perQSecs = Math.floor(perQuestionTimeRemaining % 60);
+            perQuestionTimerElement.textContent = `Time Left: ${perQMins}:${perQSecs < 10 ? '0' : ''}${perQSecs}`;
+
+            if (perQuestionTimeRemaining <= 10) {
+                perQuestionTimerElement.classList.add('danger');
+                perQuestionTimerElement.classList.remove('warning');
+            } else if (perQuestionTimeRemaining <= 60) {
+                 perQuestionTimerElement.classList.add('warning');
+                 perQuestionTimerElement.classList.remove('danger');
+            } else {
+                 perQuestionTimerElement.classList.remove('warning', 'danger');
+            }
+
+            // Update Overall Timer
+            var overallMins = Math.floor(overallTimeRemaining / 60);
+            var overallSecs = Math.floor(overallTimeRemaining % 60);
+            overallTimerElement.textContent = `Total Time Left: ${overallMins}:${overallSecs < 10 ? '0' : ''}${overallSecs}`;
+
+            if (overallTimeRemaining <= 60) { // Overall danger in the last minute
+                overallTimerElement.classList.add('danger');
+                overallTimerElement.classList.remove('warning');
+            } else if (overallTimeRemaining <= 300) { // Overall warning in the last 5 minutes
+                 overallTimerElement.classList.add('warning');
+                 overallTimerElement.classList.remove('danger');
+            } else {
+                 overallTimerElement.classList.remove('warning', 'danger');
+            }
+        }
+
+        function autoSubmit() {
+             if (timerExpiredInput.value === 'true') return;
+
+             timerExpiredInput.value = 'true';
+             console.log("Timer(s) expired! Auto-submitting quiz.");
+
+             quizForm.querySelectorAll('input, button').forEach(el => el.disabled = true);
+             quizForm.querySelectorAll('input[type="radio"]').forEach(el => el.removeAttribute('required'));
+
+             quizForm.submit();
+        }
+
+
+        function countdown() {
+            // Check Overall Timer first
+            if (overallTimeRemaining <= 0) {
+                 overallTimeRemaining = 0; // Ensure it doesn't go negative visually
+                 perQuestionTimeRemaining = 0; // Stop per-question timer too
+                 updateTimerDisplays();
+                 clearInterval(timerInterval); // Stop the interval
+                 overallTimerElement.textContent = "Total Time's Up!";
+                 perQuestionTimerElement.textContent = "Time's Up!";
+                 overallTimerElement.classList.remove('warning');
+                 overallTimerElement.classList.add('danger');
+                 perQuestionTimerElement.classList.remove('warning');
+                 perQuestionTimerElement.classList.add('danger');
+
+                 // Redirect to quiz finished page after a short delay
+                 // This is better than auto-submitting the current question form
+                 // if the overall time runs out between questions.
+                 setTimeout(function() {
+                     window.location.href = "{{ url_for('quiz_finished', message='Time for the overall quiz has expired.') }}";
+                 }, 500); // Redirect after 0.5 seconds
+
+                 return; // Stop the countdown
+            }
+
+            // Check Per-Question Timer
+            if (perQuestionTimeRemaining <= 0) {
+                perQuestionTimeRemaining = 0;
+                // If per-question timer expires, auto-submit the current question
+                 if (timerExpiredInput.value === 'false') { // Only auto-submit if overall timer hasn't already expired
+                     updateTimerDisplays(); // Update display to 0:00
+                     clearInterval(timerInterval); // Stop the interval
+                     perQuestionTimerElement.textContent = "Time's Up!";
+                     perQuestionTimerElement.classList.remove('warning');
+                     perQuestionTimerElement.classList.add('danger');
+                     autoSubmit(); // Trigger form submission
+                 }
+                 return; // Stop this countdown tick
+
+            }
+
+            updateTimerDisplays();
+
+            // Decrement both timers
+            perQuestionTimeRemaining--;
+            overallTimeRemaining--;
+
+            timerInterval = setTimeout(countdown, 1000); // Update every second
+        }
+
+        // Start the countdown when the page loads
+        // Ensure both timers have valid initial values
+        if (perQuestionTimeRemaining >= 0 && overallTimeRemaining >= 0) {
+             updateTimerDisplays(); // Initial display
+             timerInterval = setTimeout(countdown, 1000); // Wait 1 second before first decrement
+        } else {
+             // Handle case where time was already <= 0 on page load (should be caught by Flask redirect now)
+             console.error("Timer started with invalid time remaining.");
+             perQuestionTimeRemaining = 0;
+             overallTimeRemaining = 0;
+             updateTimerDisplays();
+             perQuestionTimerElement.textContent = "Error";
+             overallTimerElement.textContent = "Error";
+        }
+
+        // Optional: Disable submit button after user clicks it once manually
+        quizForm.addEventListener('submit', function() {
+             submitButton.disabled = true;
+             // Clear the interval if user submits manually before timer expires
+             clearInterval(timerInterval);
+        });
+
+        // Clear interval if user navigates away using End Quiz link
+        document.querySelector('.end-quiz-link').addEventListener('click', function() {
+             clearInterval(timerInterval);
+        });
+
+
+    </script>
+    {% endif %}
+
+</body>
+</html>

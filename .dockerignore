@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.git/
+.gitignore
+.vscode/
+*.swp
+*~
+Dockerfile
+docker-compose.yml
+*.db # Ignore the database file itself, we want to initialize it inside the container

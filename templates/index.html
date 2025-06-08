@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlaskQuiz Builder</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #0056b3;
+        }
+        p {
+            margin-bottom: 10px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #e9e9e9;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+        .mode-options {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .mode-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+        }
+        .mode-button.practice { background-color: #28a745; } /* Green */
+        .mode-button.topic { background-color: #ffc107; color: #333; } /* Yellow */
+        .mode-button.timed { background-color: #dc3545; } /* Red */
+        .mode-button.review { background-color: #6f42c1; } /* Purple */
+
+
+        .mode-button:hover {
+            opacity: 0.9;
+        }
+         .mode-button.practice:hover { background-color: #218838; }
+         .mode-button.topic:hover { background-color: #e0a800; }
+         .mode-button.timed:hover { background-color: #c82333; }
+         .mode-button.review:hover { background-color: #563d7c; }
+
+        .utility-links { /* Container for dashboard and cheat sheet links */
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Space between links */
+            flex-wrap: wrap;
+        }
+        .utility-link {
+             display: inline-block;
+             color: #0056b3;
+             text-decoration: none;
+             font-size: 1.1em;
+             padding: 10px;
+             border: 1px solid transparent;
+             border-radius: 4px;
+             transition: all 0.2s ease;
+         }
+        .utility-link:hover {
+             text-decoration: underline;
+             background-color: #e9f5ff;
+             border-color: #cce5ff;
+         }
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to FlaskQuiz Builder!</h1>
+        <p>Your educational web application for mastering Google Cloud Architect concepts.</p>
+
+        <div class="status">
+            <h2>Application Status</h2>
+            <p>Quiz data loading attempted on startup.</p>
+            <p>Number of questions loaded: <strong>{{ question_count }}</strong></p>
+             <p>Number of unique topics identified: <strong>{{ topics|length }}</strong></p>
+             {% if cheatsheet_available %} {# Show cheat sheet status #}
+                <p>Cheat Sheet loaded successfully.</p>
+             {% else %}
+                 <p style="color: red;">Error loading Cheat Sheet.</p>
+             {% endif %}
+
+            {% if question_count == 0 %}
+                <p style="color: red;">Please ensure `quiz_data.json` is in the same directory as `app.py` and has the correct format.</p>
+            {% else %}
+                <p style="color: green;">Data loaded successfully! Ready to build the quiz features.</p>
+                <p>You can view the raw data (for development/debugging) at <a href="{{ url_for('get_questions_api') }}" target="_blank">/api/questions</a>, <a href="{{ url_for('get_progress_api') }}" target="_blank">/api/progress</a>, <a href="{{ url_for('get_attempts_api') }}" target="_blank">/api/attempts</a></p>
+            {% endif %}
+        </div>
+
+        {% if question_count > 0 %}
+            <h2>Choose a Quiz Mode:</h2>
+            <div class="mode-options">
+                <a href="{{ url_for('start_quiz', mode='practice') }}" class="mode-button practice">Practice Quiz (All Questions)</a>
+                {% if topics %}
+                    <a href="{{ url_for('select_topic') }}" class="mode-button topic">Topic Quiz</a>
+                {% endif %}
+                <a href="{{ url_for('start_quiz', mode='review') }}" class="mode-button review">Review Questions</a>
+                <a href="{{ url_for('start_quiz', mode='timed') }}" class="mode-button timed">Timed Quiz</a>
+            </div>
+
+             <div class="utility-links"> {# Use new container for utility links #}
+                 <a href="{{ url_for('progress_dashboard') }}" class="utility-link">View Progress Dashboard</a>
+                 {% if cheatsheet_available %} {# Only show cheat sheet link if loaded #}
+                     <a href="{{ url_for('cheatsheet') }}" class="utility-link">View Cheat Sheet</a>
+                 {% endif %}
+             </div>
+
+
+        {% else %}
+             <p style="margin-top: 20px;">Cannot start quiz: No questions loaded.</p>
+        {% endif %}
+
+    </div>
+</body>
+</html>

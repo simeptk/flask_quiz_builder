@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Dashboard - FlaskQuiz Builder</title>
+     <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+            margin-bottom: 15px;
+             border-bottom: 2px solid #eee; /* Separator */
+             padding-bottom: 5px;
+        }
+         h3 {
+             color: #0056b3;
+             margin-top: 20px;
+             margin-bottom: 10px;
+         }
+        .stats-section {
+            margin-bottom: 30px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Responsive grid */
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .stat-card {
+            background-color: #e9f5ff;
+            border: 1px solid #cce5ff;
+            border-radius: 4px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-card h4 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #004080;
+            font-size: 1em;
+        }
+        .stat-card p {
+            margin: 0;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        .topic-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .topic-table th, .topic-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .topic-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .topic-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .topic-table tr:hover {
+            background-color: #e9e9e9;
+        }
+
+        .weak-areas-list li {
+            margin-bottom: 8px;
+            color: #dc3545; /* Red */
+        }
+
+        .review-list li {
+            margin-bottom: 8px;
+             border-bottom: 1px dashed #ccc;
+             padding-bottom: 8px;
+             font-size: 0.9em;
+        }
+         .review-list li:last-child {
+             border-bottom: none;
+             padding-bottom: 0;
+         }
+        .review-list li strong {
+            color: #004080;
+        }
+         .review-list li span {
+             font-style: italic;
+             color: #666;
+             margin-left: 10px;
+         }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            color: #0056b3;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Progress Dashboard</h1>
+
+        <div class="stats-section">
+            <h2>Overall Statistics</h2>
+            <div class="stats-grid">
+                 <div class="stat-card">
+                    <h4>Total Questions Loaded</h4>
+                    <p>{{ total_questions_loaded }}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Attempts</h4>
+                    <p>{{ total_attempts }}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Correct Attempts</h4>
+                    <p>{{ correct_attempts }}</p>
+                </div>
+                 <div class="stat-card">
+                    <h4>Incorrect Attempts</h4>
+                    <p>{{ incorrect_attempts }}</p>
+                </div>
+                 <div class="stat-card">
+                    <h4>Overall Correct %</h4>
+                    <p>{{ overall_correct_percentage | round(2)  }}</p>
+                </div>
+            </div>
+        </div>
+
+         <div class="stats-section">
+            <h2>Progress by Topic</h2>
+             {% if topic_stats %}
+                 <table class="topic-table">
+                     <thead>
+                         <tr>
+                             <th>Topic</th>
+                             <th>Attempts</th>
+                             <th>Correct</th>
+                             <th>Incorrect</th>
+                             <th>Correct %</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         {% for stats in topic_stats %}
+                             <tr>
+                                 <td>{{ stats.topic }}</td>
+                                 <td>{{ stats.total_attempts }}</td>
+                                 <td>{{ stats.correct_attempts }}</td>
+                                 <td>{{ stats.incorrect_attempts }}</td>
+                                 <td>{{ stats.correct_percentage }}</td>
+                             </tr>
+                         {% endfor %}
+                     </tbody>
+                 </table>
+             {% else %}
+                 <p>No quiz attempts recorded yet.</p>
+             {% endif %}
+         </div>
+
+         <div class="stats-section">
+             <h2>Weak Areas</h2>
+             {% if weak_areas %}
+                 <p>Topics where you have incorrect attempts and a lower correct percentage (below 70%):</p>
+                 <ul class="weak-areas-list">
+                     {% for area in weak_areas %}
+                         <li><strong>{{ area.topic }}</strong>: {{ area.incorrect_attempts }} incorrect attempts ({{ area.correct_percentage }} correct)</li>
+                     {% endfor %}
+                 </ul>
+             {% else %}
+                 <p>Great job! No weak areas identified based on the current criteria, or no attempts recorded yet.</p>
+             {% endif %}
+         </div>
+
+
+        <div class="stats-section">
+            <h2>Questions Due for Review ({{ questions_due_for_review|length }})</h2>
+            {% if questions_due_for_review %}
+                <p>These questions are scheduled for review based on your performance:</p>
+                <ul class="review-list">
+                    {% for q in questions_due_for_review %}
+                        <li>
+                             <strong>{{ q.id }}:</strong> {{ q.text_snippet }}
+                             <span>(Incorrect: {{ q.incorrect_attempts }}, Streak: {{ q.streak }}, Due: {{ q.next_review.strftime('%Y-%m-%d') if q.next_review else 'N/A' }})</span> {# Format date #}
+                             {% if q.topic %}<span>Topic: {{ q.topic }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                {# TODO: Add a button to start a Review Quiz with these questions #}
+                 <p style="margin-top: 15px;"><a href="{{ url_for('start_quiz', mode='review') }}" class="button-link">Start Review Quiz</a></p> {# Added link to start review quiz #}
+
+            {% else %}
+                <p>No questions are currently due for review. Keep studying!</p>
+            {% endif %}
+        </div>
+
+        <p><a href="{{ url_for('index') }}" class="back-link">&larr; Back to Home</a></p>
+
+    </div>
+</body>
+</html>
